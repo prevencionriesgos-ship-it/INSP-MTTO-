@@ -372,6 +372,14 @@
   .btn-whatsapp { padding: 8px 18px; background: #25D366; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font-main); display: flex; align-items: center; gap: 6px; }
   .btn-whatsapp:hover { background: #1ebe5d; }
   .btn-nueva { padding: 8px 18px; background: white; color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font-main); }
+  .btn-sheets {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; background: #059669; color: white; border: none;
+    border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: var(--font-main); transition: background 0.15s;
+  }
+  .btn-sheets:hover { background: #047857; }
+  .btn-sheets:disabled { opacity: 0.7; cursor: not-allowed; }
 
   .foto-inf-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0.75rem; }
   .foto-inf-item img { width: 100%; height: 90px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
@@ -1045,6 +1053,10 @@
       <div class="informe-footer-text" id="inf-footer-text">PYT Systems SpA · HSE-FFOO</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn-nueva" onclick="nuevaOT()">← Nueva OT</button>
+        <button id="btn-guardar-sheets" class="btn-sheets" onclick="guardarEnSheets()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar en Sheets
+        </button>
         <button class="btn-whatsapp" onclick="enviarWhatsApp()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style="flex-shrink:0"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
           Enviar por WhatsApp
@@ -1791,6 +1803,128 @@ function enviarWhatsApp() {
     ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`
     : `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
+}
+
+// ====================== GUARDAR EN GOOGLE SHEETS ======================
+// ⚠️ REEMPLAZA ESTA URL con la URL de tu Google Apps Script desplegado:
+const SHEETS_URL = "https://script.google.com/macros/s/AKfycby1jGi9HCqvH5WJAIE8pFdDJ1-5InEmXgZeZlhznvhKXvSamVWFSUgg4NjZRe4G-v9h/exec";
+
+async function guardarEnSheets() {
+  const btn = document.getElementById('btn-guardar-sheets');
+  if (!btn) return;
+
+  // Validación básica
+  if (!supSel) {
+    alert('⚠️ Debes seleccionar un supervisor antes de guardar.');
+    return;
+  }
+  if (!resultadoSel) {
+    alert('⚠️ Debes seleccionar el resultado general (sección Cierre) antes de guardar.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Guardando...';
+
+  // Contar ítems por categoría
+  function contarCategoria(items, prefix, estadoMap) {
+    let c = 0, nc = 0;
+    items.forEach((_, i) => {
+      const s = estadoMap[prefix + '_' + i];
+      if (s === 'C') c++;
+      else if (s === 'NC') nc++;
+    });
+    return { c, nc };
+  }
+
+  const epp   = contarCategoria(EPP_ITEMS,      'epp',     estados);
+  const señal = contarCategoria(SEÑAL_ITEMS,     'señal',   estados);
+  const herr  = contarCategoria(HERR_ITEMS,      'herr',    estados);
+  const vehi  = contarCategoria(VEHI_ITEMS,      'vehi',    estados);
+  const inst  = contarCategoria(INST_ITEMS,      'inst',    estados);
+  const esc   = contarCategoria(ESCALERA_ITEMS,  'esc',     estados);
+  const arnes = contarCategoria(ARNES_ITEMS,     'arnes',   estados);
+
+  let seg = 0, ins = 0;
+  CONDUCTA_ITEMS.forEach((_, i) => {
+    const s = estados['conducta_' + i];
+    if (s === 'SEG') seg++; else if (s === 'INS') ins++;
+  });
+
+  // Recopilar hallazgos del plan de acción
+  const hallazgosArr = [];
+  document.querySelectorAll('#accion-body tr').forEach(r => {
+    const h = r.querySelector('.ac-h')?.value?.trim();
+    if (h) hallazgosArr.push(h);
+  });
+
+  // Tipos de trabajo seleccionados
+  const tiposSel = Array.from(document.querySelectorAll('.tipo-btn.sel:not([data-tipo="otro"])')).map(b => b.dataset.tipo);
+  if (document.querySelector('.tipo-btn[data-tipo="otro"]')?.classList.contains('sel') && v('tipo-otro')) {
+    tiposSel.push(v('tipo-otro'));
+  }
+
+  const totalC  = epp.c + señal.c + herr.c + vehi.c + inst.c + esc.c + arnes.c;
+  const totalNC = epp.nc + señal.nc + herr.nc + vehi.nc + inst.nc + esc.nc + arnes.nc;
+
+  const payload = {
+    fecha:             v('fecha'),
+    hora_ini:          v('hora_ini'),
+    hora_fin:          v('hora_fin'),
+    supervisor:        supSel.nombre,
+    rut_supervisor:    supSel.rut,
+    direccion:         v('direccion'),
+    comuna:            v('comuna'),
+    region:            v('region'),
+    trabajador_auditar: v('trabajador_auditar'),
+    ayudante:          v('ayudante'),
+    ntrabajadores:     v('ntrabajadores'),
+    tipo_trabajo:      tiposSel.join(', '),
+    zona_color:        getRadio('zona-color') || '',
+    entorno:           getRadio('entorno') || '',
+    clima:             getRadio('clima') || '',
+    vehi_patente:      v('vehi_patente'),
+    vehi_modelo:       v('vehi_modelo'),
+    fusion_marca:      v('fusion_marca'),
+    fusion_modelo:     v('fusion_modelo'),
+    arnes_marca:       v('arnes_marca'),
+    epp_c:             epp.c,   epp_nc:   epp.nc,
+    señal_c:           señal.c, señal_nc: señal.nc,
+    herr_c:            herr.c,  herr_nc:  herr.nc,
+    vehi_c:            vehi.c,  vehi_nc:  vehi.nc,
+    inst_c:            inst.c,  inst_nc:  inst.nc,
+    esc_c:             esc.c,   esc_nc:   esc.nc,
+    arnes_c:           arnes.c, arnes_nc: arnes.nc,
+    conductas_seg:     seg,
+    conductas_ins:     ins,
+    total_c:           totalC,
+    total_nc:          totalNC,
+    resultado:         resultadoSel,
+    riesgo:            riesgoSel || '',
+    hallazgos:         hallazgosArr.join(' | '),
+    resumen:           v('resumen'),
+  };
+
+  try {
+    const resp = await fetch(SHEETS_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+
+    if (data.ok) {
+      btn.innerHTML = '✅ Guardado en fila ' + data.fila;
+      btn.style.background = '#059669';
+      btn.disabled = false;
+    } else {
+      throw new Error(data.error || 'Error desconocido');
+    }
+  } catch (err) {
+    btn.innerHTML = '❌ Error al guardar';
+    btn.style.background = '#DC2626';
+    btn.disabled = false;
+    alert('Error al guardar: ' + err.message + '\n\nVerifica que la URL del script esté correctamente configurada en el archivo index.html (variable SHEETS_URL).');
+  }
 }
 
 
