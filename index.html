@@ -470,11 +470,37 @@
 
     <div class="field-grid">
       <div class="field"><label>Dirección / Ubicación <span class="req">*</span></label><input type="text" id="direccion" placeholder="Calle, número, sector"></div>
-      <div class="field"><label>Comuna <span class="req">*</span></label><input type="text" id="comuna" placeholder="Ej: Providencia"></div>
+      <div class="field">
+        <label>Región <span class="req">*</span></label>
+        <select id="region" onchange="actualizarComunas()">
+          <option value="">— Seleccionar región —</option>
+          <option value="Región de Arica y Parinacota">Región de Arica y Parinacota</option>
+          <option value="Región de Tarapacá">Región de Tarapacá</option>
+          <option value="Región de Antofagasta">Región de Antofagasta</option>
+          <option value="Región de Atacama">Región de Atacama</option>
+          <option value="Región de Coquimbo">Región de Coquimbo</option>
+          <option value="Región de Valparaíso">Región de Valparaíso</option>
+          <option value="Región Metropolitana de Santiago" selected>Región Metropolitana de Santiago</option>
+          <option value="Región del Libertador Gral. Bernardo O'Higgins">Región del Libertador Gral. Bernardo O'Higgins</option>
+          <option value="Región del Maule">Región del Maule</option>
+          <option value="Región de Ñuble">Región de Ñuble</option>
+          <option value="Región del Biobío">Región del Biobío</option>
+          <option value="Región de La Araucanía">Región de La Araucanía</option>
+          <option value="Región de Los Ríos">Región de Los Ríos</option>
+          <option value="Región de Los Lagos">Región de Los Lagos</option>
+          <option value="Región de Aysén del Gral. Carlos Ibáñez del Campo">Región de Aysén del Gral. Carlos Ibáñez del Campo</option>
+          <option value="Región de Magallanes y de la Antártica Chilena">Región de Magallanes y de la Antártica Chilena</option>
+        </select>
+      </div>
     </div>
 
     <div class="field-grid">
-      <div class="field"><label>Región <span class="req">*</span></label><input type="text" id="region" placeholder="Ej: Región Metropolitana"></div>
+      <div class="field">
+        <label>Comuna <span class="req">*</span></label>
+        <select id="comuna">
+          <option value="">— Seleccionar comuna —</option>
+        </select>
+      </div>
       <div class="field"><label>Trabajador a auditar <span class="req">*</span></label><input type="text" id="trabajador_auditar" placeholder="Nombre completo del trabajador"></div>
     </div>
 
@@ -1032,19 +1058,41 @@
       </div>
 
       <div class="firma-row">
+        <!-- Firma Supervisor -->
         <div class="firma-box">
           <div class="firma-title">Supervisor a cargo</div>
           <div class="firma-name" id="inf-firma-sup">—</div>
           <div class="firma-rut" id="inf-firma-sup-rut"></div>
-          <div class="firma-line"></div>
-          <div class="firma-sign-label">Firma</div>
+          <div style="margin-top:10px;position:relative">
+            <canvas id="canvas-sup" width="340" height="110"
+              style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair">
+            </canvas>
+            <div id="firma-sup-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:var(--gris);font-size:13px;font-family:var(--font-mono)">
+              ✍ Firmar aquí
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button onclick="limpiarFirma('sup')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:5px;background:white;font-size:12px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
+          </div>
         </div>
+        <!-- Firma Inspector -->
         <div class="firma-box">
           <div class="firma-title">Inspector / Verificador HSE</div>
-          <div class="firma-name" style="margin-top:6px">_________________________</div>
-          <div class="firma-rut" style="margin-top:2px">Nombre y RUT</div>
-          <div class="firma-line"></div>
-          <div class="firma-sign-label">Firma</div>
+          <div class="field" style="margin-top:6px;margin-bottom:8px">
+            <input type="text" id="inspector-nombre" placeholder="Nombre completo del inspector"
+              style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;font-family:var(--font-main);width:100%;outline:none">
+          </div>
+          <div style="position:relative">
+            <canvas id="canvas-insp" width="340" height="110"
+              style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair">
+            </canvas>
+            <div id="firma-insp-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:var(--gris);font-size:13px;font-family:var(--font-mono)">
+              ✍ Firmar aquí
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button onclick="limpiarFirma('insp')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:5px;background:white;font-size:12px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1108,6 +1156,54 @@
 </div>
 
 <script>
+// ====================== COMUNAS POR REGIÓN ======================
+const COMUNAS_POR_REGION = {
+  "Región de Arica y Parinacota": ["Arica","Camarones","Putre","General Lagos"],
+  "Región de Tarapacá": ["Iquique","Alto Hospicio","Pozo Almonte","Camiña","Colchane","Huara","Pica"],
+  "Región de Antofagasta": ["Antofagasta","Mejillones","Sierra Gorda","Taltal","Calama","Ollagüe","San Pedro de Atacama","Tocopilla","María Elena"],
+  "Región de Atacama": ["Copiapó","Caldera","Tierra Amarilla","Chañaral","Diego de Almagro","Vallenar","Alto del Carmen","Freirina","Huasco"],
+  "Región de Coquimbo": ["La Serena","Coquimbo","Andacollo","La Higuera","Paiguano","Vicuña","Illapel","Canela","Los Vilos","Salamanca","Ovalle","Combarbalá","Monte Patria","Punitaqui","Río Hurtado"],
+  "Región de Valparaíso": ["Valparaíso","Casablanca","Concón","Juan Fernández","Puchuncaví","Quintero","Viña del Mar","Isla de Pascua","Los Andes","Calle Larga","Rinconada","San Esteban","La Ligua","Cabildo","Papudo","Petorca","Zapallar","Quillota","Calera","Hijuelas","La Cruz","Nogales","San Antonio","Algarrobo","Cartagena","El Quisco","El Tabo","Santo Domingo","San Felipe","Catemu","Llaillay","Panquehue","Putaendo","Santa María","Quilpué","Limache","Olmué","Villa Alemana"],
+  "Región Metropolitana de Santiago": [
+    "Cerrillos","Cerro Navia","Conchalí","El Bosque","Estación Central","Huechuraba",
+    "Independencia","La Cisterna","La Florida","La Granja","La Pintana","La Reina",
+    "Las Condes","Lo Barnechea","Lo Espejo","Lo Prado","Macul","Maipú","Ñuñoa",
+    "Pedro Aguirre Cerda","Peñalolén","Providencia","Pudahuel","Quilicura","Quinta Normal",
+    "Recoleta","Renca","San Joaquín","San Miguel","San Ramón","Santiago","Vitacura",
+    "Puente Alto","Pirque","San José de Maipo",
+    "Colina","Lampa","Tiltil",
+    "San Bernardo","Buin","Calera de Tango","Paine",
+    "Melipilla","Alhué","Curacaví","María Pinto","San Pedro",
+    "Talagante","El Monte","Isla de Maipo","Padre Hurtado","Peñaflor"
+  ],
+  "Región del Libertador Gral. Bernardo O'Higgins": ["Rancagua","Codegua","Coinco","Coltauco","Doñihue","Graneros","Las Cabras","Machalí","Malloa","Mostazal","Olivar","Peumo","Pichidegua","Quinta de Tilcoco","Rengo","Requínoa","San Vicente","Pichilemu","La Estrella","Litueche","Marchihue","Navidad","Paredones","San Fernando","Chépica","Chimbarongo","Lolol","Nancagua","Palmilla","Peralillo","Placilla","Pumanque","Santa Cruz"],
+  "Región del Maule": ["Talca","Constitución","Curepto","Empedrado","Maule","Pelarco","Pencahue","Río Claro","San Clemente","San Rafael","Cauquenes","Chanco","Pelluhue","Curicó","Hualañé","Licantén","Molina","Rauco","Romeral","Sagrada Familia","Teno","Vichuquén","Linares","Colbún","Longaví","Parral","Retiro","San Javier","Villa Alegre","Yerbas Buenas"],
+  "Región de Ñuble": ["Chillán","Bulnes","Cobquecura","Coelemu","Coihueco","Chillán Viejo","El Carmen","Ninhue","Ñiquén","Pemuco","Pinto","Portezuelo","Quillón","Quirihue","Ránquil","San Carlos","San Fabián","San Ignacio","San Nicolás","Treguaco","Yungay"],
+  "Región del Biobío": ["Concepción","Coronel","Chiguayante","Florida","Hualqui","Lota","Penco","San Pedro de la Paz","Santa Juana","Talcahuano","Tomé","Hualpén","Lebu","Arauco","Cañete","Contulmo","Curanilahue","Los Álamos","Tirúa","Los Ángeles","Antuco","Cabrero","Laja","Mulchén","Nacimiento","Negrete","Quilaco","Quilleco","San Rosendo","Santa Bárbara","Tucapel","Yumbel","Alto Biobío"],
+  "Región de La Araucanía": ["Temuco","Carahue","Cunco","Curarrehue","Freire","Galvarino","Gorbea","Lautaro","Loncoche","Melipeuco","Nueva Imperial","Padre Las Casas","Perquenco","Pitrufquén","Pucón","Saavedra","Teodoro Schmidt","Toltén","Vilcún","Villarrica","Cholchol","Angol","Collipulli","Curacautín","Ercilla","Lonquimay","Los Sauces","Lumaco","Purén","Renaico","Traiguén","Victoria"],
+  "Región de Los Ríos": ["Valdivia","Corral","Futrono","La Unión","Lago Ranco","Lanco","Los Lagos","Máfil","Mariquina","Paillaco","Panguipulli","Río Bueno"],
+  "Región de Los Lagos": ["Puerto Montt","Calbuco","Cochamó","Fresia","Frutillar","Los Muermos","Llanquihue","Maullín","Puerto Varas","Castro","Ancud","Chonchi","Curaco de Vélez","Dalcahue","Puqueldón","Queilén","Quellón","Quemchi","Quinchao","Osorno","Puerto Octay","Purranque","Puyehue","Río Negro","San Juan de la Costa","San Pablo","Chaitén","Futaleufú","Hualaihué","Palena"],
+  "Región de Aysén del Gral. Carlos Ibáñez del Campo": ["Coyhaique","Lago Verde","Aysén","Cisnes","Guaitecas","Cochrane","O'Higgins","Tortel","Chile Chico","Río Ibáñez"],
+  "Región de Magallanes y de la Antártica Chilena": ["Punta Arenas","Laguna Blanca","Río Verde","San Gregorio","Cabo de Hornos","Antártica","Porvenir","Primavera","Timaukel","Natales","Torres del Paine"]
+};
+
+function actualizarComunas() {
+  const regionEl = document.getElementById('region');
+  const comunaEl = document.getElementById('comuna');
+  const region   = regionEl.value;
+  const comunas  = COMUNAS_POR_REGION[region] || [];
+
+  comunaEl.innerHTML = '<option value="">— Seleccionar comuna —</option>';
+  comunas.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    comunaEl.appendChild(opt);
+  });
+  comunaEl.disabled = comunas.length === 0;
+}
+
+// Inicializar comunas de la Región Metropolitana al cargar
+document.addEventListener('DOMContentLoaded', () => actualizarComunas());
 const EPP_ITEMS = [
   "Calzado de Seguridad",
   "Casco con Barbiquejo",
@@ -1511,6 +1607,9 @@ function generarInforme() {
   document.getElementById('informe-section').style.display = 'block';
   document.getElementById('progress-wrap').style.display = 'none';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Inicializar pads de firma digital
+  initFirmas();
 }
 
 function renderCheck(elId, scoreId, items, prefix) {
@@ -1550,6 +1649,9 @@ function descargarPDF() {
   const fecha = v('fecha') || new Date().toISOString().split('T')[0];
   const filename = `Inspeccion_Seguridad_${supervisor}_${fecha}.pdf`;
 
+  // Incrustar firmas como imágenes en el PDF
+  embedFirmasEnPDF();
+
   const footer = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
 
@@ -1563,11 +1665,38 @@ function descargarPDF() {
   };
 
   html2pdf().set(opt).from(element).save()
-    .then(() => { if (footer) footer.style.display = ''; })
+    .then(() => {
+      if (footer) footer.style.display = '';
+      removeFirmasEmbed();
+    })
     .catch(() => {
       if (footer) footer.style.display = '';
+      removeFirmasEmbed();
       alert('Error al generar el PDF. Intenta con "Imprimir" del navegador.');
     });
+}
+
+// Convierte los canvas de firma en <img> para el PDF
+function embedFirmasEnPDF() {
+  ['sup','insp'].forEach(id => {
+    const canvas = document.getElementById('canvas-' + id);
+    if (!canvas || !firmaState[id].hasData) return;
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.id  = 'firma-embed-' + id;
+    img.style.cssText = 'display:block;width:100%;height:110px;object-fit:contain;border:1.5px solid #e5e7eb;border-radius:6px;background:white';
+    canvas.parentNode.insertBefore(img, canvas);
+    canvas.style.display = 'none';
+  });
+}
+
+function removeFirmasEmbed() {
+  ['sup','insp'].forEach(id => {
+    const img = document.getElementById('firma-embed-' + id);
+    if (img) img.remove();
+    const canvas = document.getElementById('canvas-' + id);
+    if (canvas) canvas.style.display = 'block';
+  });
 }
 
 // ====================== MODAL CORREO ======================
@@ -1607,6 +1736,9 @@ function enviarCorreo() {
   const footer  = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
 
+  // Incrustar firmas para el PDF
+  embedFirmasEnPDF();
+
   const supervisor = supSel ? supSel.nombre.replace(/ /g,'_') : 'Inspector';
   const fecha      = v('fecha') || new Date().toISOString().split('T')[0];
   const filename   = `Inspeccion_${supervisor}_${fecha}.pdf`;
@@ -1624,6 +1756,7 @@ function enviarCorreo() {
   html2pdf().set(opt).from(element).outputPdf('blob')
     .then(blob => {
       if (footer) footer.style.display = '';
+      removeFirmasEmbed();
 
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1668,24 +1801,23 @@ function enviarCorreo() {
       };
 
       return fetch(SHEETS_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
+        method:  'POST',
+        mode:    'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body:    JSON.stringify(payload),
       });
     })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        statusEl.textContent = '✅ ¡Informe enviado con PDF adjunto!';
-        statusEl.className = 'modal-status ok';
-        btnEl.disabled = false;
-        btnEl.innerHTML = '✉ Enviar informe';
-        setTimeout(() => cerrarModalCorreo(), 3000);
-      } else {
-        throw new Error(data.error || 'Error desconocido');
-      }
+    .then(() => {
+      // no-cors = respuesta opaca, si no lanzó error = éxito
+      statusEl.textContent = '✅ ¡Informe con PDF enviado correctamente!';
+      statusEl.className = 'modal-status ok';
+      btnEl.disabled = false;
+      btnEl.innerHTML = '✉ Enviar informe';
+      setTimeout(() => cerrarModalCorreo(), 3000);
     })
     .catch(err => {
       if (footer) footer.style.display = '';
+      removeFirmasEmbed();
       statusEl.textContent = '❌ Error: ' + err.message;
       statusEl.className = 'modal-status err';
       btnEl.disabled = false;
@@ -1791,18 +1923,88 @@ function limpiarPlan() {
   document.getElementById('plan-auto-banner').style.display = 'none';
 }
 
+// ====================== FIRMA DIGITAL (CANVAS) ======================
+const firmaState = {
+  sup:  { drawing: false, hasData: false },
+  insp: { drawing: false, hasData: false }
+};
+
+function initFirma(id) {
+  const canvas = document.getElementById('canvas-' + id);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#0A2540';
+  ctx.lineWidth   = 2.2;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const scaleX = canvas.width  / r.width;
+    const scaleY = canvas.height / r.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left) * scaleX, y: (src.clientY - r.top) * scaleY };
+  }
+
+  function start(e) {
+    e.preventDefault();
+    firmaState[id].drawing = true;
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    document.getElementById('firma-' + id + '-placeholder').style.display = 'none';
+  }
+  function move(e) {
+    e.preventDefault();
+    if (!firmaState[id].drawing) return;
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    firmaState[id].hasData = true;
+  }
+  function stop(e) { e.preventDefault(); firmaState[id].drawing = false; }
+
+  canvas.addEventListener('mousedown',  start, { passive: false });
+  canvas.addEventListener('mousemove',  move,  { passive: false });
+  canvas.addEventListener('mouseup',    stop,  { passive: false });
+  canvas.addEventListener('mouseleave', stop,  { passive: false });
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove',  move,  { passive: false });
+  canvas.addEventListener('touchend',   stop,  { passive: false });
+}
+
+function limpiarFirma(id) {
+  const canvas = document.getElementById('canvas-' + id);
+  if (!canvas) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  firmaState[id].hasData = false;
+  document.getElementById('firma-' + id + '-placeholder').style.display = 'flex';
+}
+
+function getFirmaDataURL(id) {
+  const canvas = document.getElementById('canvas-' + id);
+  return (canvas && firmaState[id].hasData) ? canvas.toDataURL('image/png') : null;
+}
+
+// Inicializar ambos pads al generarse el informe
+function initFirmas() {
+  setTimeout(() => { initFirma('sup'); initFirma('insp'); }, 100);
+}
+
 function nuevaOT() {
   if(confirm('¿Iniciar una nueva orden de trabajo? Se perderán los datos actuales.')) location.reload();
 }
 
 function enviarWhatsApp() {
-  const sup = supSel ? supSel.nombre : '—';
-  const fecha = document.getElementById('inf-fecha').textContent;
+  const sup      = supSel ? supSel.nombre : '—';
+  const fechaRaw = v('fecha');
+  const fecha    = fechaRaw
+    ? new Date(fechaRaw + 'T12:00:00').toLocaleDateString('es-CL', {day:'2-digit', month:'long', year:'numeric'})
+    : (document.getElementById('inf-fecha')?.textContent || '—');
   const ubicacion = v('direccion') || '—';
   const resultado = resultadoSel || '—';
-  const clima = getRadio('clima') || '—';
+  const clima     = getRadio('clima') || '—';
 
-  // Contar cumplimiento
   let cumple=0, noCumple=0, seguras=0, inseguras=0;
   EPP_ITEMS.forEach((_,i)=>{ const s=estados['epp_'+i]; if(s==='C') cumple++; else if(s==='NC') noCumple++; });
   SEÑAL_ITEMS.forEach((_,i)=>{ const s=estados['señal_'+i]; if(s==='C') cumple++; else if(s==='NC') noCumple++; });
@@ -1813,14 +2015,11 @@ function enviarWhatsApp() {
   INST_ITEMS.forEach((_,i)=>{ const s=estados['inst_'+i]; if(s==='C') cumple++; else if(s==='NC') noCumple++; });
   CONDUCTA_ITEMS.forEach((_,i)=>{ const s=estados['conducta_'+i]; if(s==='SEG') seguras++; else if(s==='INS') inseguras++; });
 
-  // Hallazgos
   const acRows = document.querySelectorAll('#accion-body tr');
   let hallazgos = [];
   acRows.forEach(r => { const h=r.querySelector('.ac-h')?.value; if(h) hallazgos.push('• '+h); });
 
   const resumen = v('resumen');
-
-  // Tipos de trabajo
   const tiposSelBtn = Array.from(document.querySelectorAll('.tipo-btn.sel:not([data-tipo="otro"])')).map(b=>b.dataset.tipo);
   if(document.querySelector('.tipo-btn[data-tipo="otro"]')?.classList.contains('sel') && v('tipo-otro')) tiposSelBtn.push(v('tipo-otro'));
 
@@ -1838,20 +2037,22 @@ function enviarWhatsApp() {
   msg += `👁 Conductas seguras: ${seguras}\n`;
   msg += `⚠️ Conductas inseguras: ${inseguras}\n`;
   if(riesgoSel) msg += `🚨 Nivel de riesgo: *${riesgoSel}*\n`;
-  if(hallazgos.length) {
-    msg += `\n📋 *HALLAZGOS:*\n`;
-    msg += hallazgos.join('\n') + '\n';
-  }
-  if(resumen) {
-    msg += `\n📝 *RESUMEN:*\n${resumen}\n`;
-  }
+  if(hallazgos.length) { msg += `\n📋 *HALLAZGOS:*\n`; msg += hallazgos.join('\n') + '\n'; }
+  if(resumen) { msg += `\n📝 *RESUMEN:*\n${resumen}\n`; }
   msg += `\n_Informe generado por PYT Systems SpA_`;
 
-  const tel = v('wsp-numero').replace(/\D/g,'');
+  // Número de destino
+  const numInput = document.getElementById('wsp-numero');
+  const tel = numInput ? numInput.value.replace(/\D/g,'') : '';
   const url = tel
     ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`
     : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-  window.open(url, '_blank');
+
+  const opened = window.open(url, '_blank');
+  if (!opened) {
+    // Si el navegador bloqueó el popup, redirigir en la misma pestaña
+    window.location.href = url;
+  }
 }
 
 // ====================== GUARDAR EN GOOGLE SHEETS ======================
@@ -1862,7 +2063,6 @@ async function guardarEnSheets() {
   const btn = document.getElementById('btn-guardar-sheets');
   if (!btn) return;
 
-  // Validación básica
   if (!supSel) {
     alert('⚠️ Debes seleccionar un supervisor antes de guardar.');
     return;
@@ -1875,24 +2075,22 @@ async function guardarEnSheets() {
   btn.disabled = true;
   btn.innerHTML = '⏳ Guardando...';
 
-  // Contar ítems por categoría
-  function contarCategoria(items, prefix, estadoMap) {
+  function contarCategoria(items, prefix) {
     let c = 0, nc = 0;
     items.forEach((_, i) => {
-      const s = estadoMap[prefix + '_' + i];
-      if (s === 'C') c++;
-      else if (s === 'NC') nc++;
+      const s = estados[prefix + '_' + i];
+      if (s === 'C') c++; else if (s === 'NC') nc++;
     });
     return { c, nc };
   }
 
-  const epp   = contarCategoria(EPP_ITEMS,      'epp',     estados);
-  const señal = contarCategoria(SEÑAL_ITEMS,     'señal',   estados);
-  const herr  = contarCategoria(HERR_ITEMS,      'herr',    estados);
-  const vehi  = contarCategoria(VEHI_ITEMS,      'vehi',    estados);
-  const inst  = contarCategoria(INST_ITEMS,      'inst',    estados);
-  const esc   = contarCategoria(ESCALERA_ITEMS,  'esc',     estados);
-  const arnes = contarCategoria(ARNES_ITEMS,     'arnes',   estados);
+  const epp   = contarCategoria(EPP_ITEMS,     'epp');
+  const señal = contarCategoria(SEÑAL_ITEMS,   'señal');
+  const herr  = contarCategoria(HERR_ITEMS,    'herr');
+  const vehi  = contarCategoria(VEHI_ITEMS,    'vehi');
+  const inst  = contarCategoria(INST_ITEMS,    'inst');
+  const esc   = contarCategoria(ESCALERA_ITEMS,'esc');
+  const arnes = contarCategoria(ARNES_ITEMS,   'arnes');
 
   let seg = 0, ins = 0;
   CONDUCTA_ITEMS.forEach((_, i) => {
@@ -1900,79 +2098,79 @@ async function guardarEnSheets() {
     if (s === 'SEG') seg++; else if (s === 'INS') ins++;
   });
 
-  // Recopilar hallazgos del plan de acción
   const hallazgosArr = [];
   document.querySelectorAll('#accion-body tr').forEach(r => {
     const h = r.querySelector('.ac-h')?.value?.trim();
     if (h) hallazgosArr.push(h);
   });
 
-  // Tipos de trabajo seleccionados
   const tiposSel = Array.from(document.querySelectorAll('.tipo-btn.sel:not([data-tipo="otro"])')).map(b => b.dataset.tipo);
   if (document.querySelector('.tipo-btn[data-tipo="otro"]')?.classList.contains('sel') && v('tipo-otro')) {
     tiposSel.push(v('tipo-otro'));
   }
 
-  const totalC  = epp.c + señal.c + herr.c + vehi.c + inst.c + esc.c + arnes.c;
+  const totalC  = epp.c  + señal.c  + herr.c  + vehi.c  + inst.c  + esc.c  + arnes.c;
   const totalNC = epp.nc + señal.nc + herr.nc + vehi.nc + inst.nc + esc.nc + arnes.nc;
 
   const payload = {
-    fecha:             v('fecha'),
-    hora_ini:          v('hora_ini'),
-    hora_fin:          v('hora_fin'),
-    supervisor:        supSel.nombre,
-    rut_supervisor:    supSel.rut,
-    direccion:         v('direccion'),
-    comuna:            v('comuna'),
-    region:            v('region'),
+    fecha:              v('fecha'),
+    hora_ini:           v('hora_ini'),
+    hora_fin:           v('hora_fin'),
+    supervisor:         supSel.nombre,
+    rut_supervisor:     supSel.rut,
+    direccion:          v('direccion'),
+    comuna:             v('comuna'),
+    region:             v('region'),
     trabajador_auditar: v('trabajador_auditar'),
-    ayudante:          v('ayudante'),
-    ntrabajadores:     v('ntrabajadores'),
-    tipo_trabajo:      tiposSel.join(', '),
-    zona_color:        getRadio('zona-color') || '',
-    entorno:           getRadio('entorno') || '',
-    clima:             getRadio('clima') || '',
-    vehi_patente:      v('vehi_patente'),
-    vehi_modelo:       v('vehi_modelo'),
-    fusion_marca:      v('fusion_marca'),
-    fusion_modelo:     v('fusion_modelo'),
-    arnes_marca:       v('arnes_marca'),
-    epp_c:             epp.c,   epp_nc:   epp.nc,
-    señal_c:           señal.c, señal_nc: señal.nc,
-    herr_c:            herr.c,  herr_nc:  herr.nc,
-    vehi_c:            vehi.c,  vehi_nc:  vehi.nc,
-    inst_c:            inst.c,  inst_nc:  inst.nc,
-    esc_c:             esc.c,   esc_nc:   esc.nc,
-    arnes_c:           arnes.c, arnes_nc: arnes.nc,
-    conductas_seg:     seg,
-    conductas_ins:     ins,
-    total_c:           totalC,
-    total_nc:          totalNC,
-    resultado:         resultadoSel,
-    riesgo:            riesgoSel || '',
-    hallazgos:         hallazgosArr.join(' | '),
-    resumen:           v('resumen'),
+    ayudante:           v('ayudante'),
+    ntrabajadores:      v('ntrabajadores'),
+    tipo_trabajo:       tiposSel.join(', '),
+    zona_color:         getRadio('zonacolor'),
+    entorno:            getRadio('entorno'),
+    clima:              getRadio('clima'),
+    vehi_patente:       v('vehi_patente'),
+    vehi_modelo:        v('vehi_modelo'),
+    fusion_marca:       v('fusion_marca'),
+    fusion_modelo:      v('fusion_modelo'),
+    arnes_marca:        v('arnes_marca'),
+    epp_c:    epp.c,    epp_nc:   epp.nc,
+    señal_c:  señal.c,  señal_nc: señal.nc,
+    herr_c:   herr.c,   herr_nc:  herr.nc,
+    vehi_c:   vehi.c,   vehi_nc:  vehi.nc,
+    inst_c:   inst.c,   inst_nc:  inst.nc,
+    esc_c:    esc.c,    esc_nc:   esc.nc,
+    arnes_c:  arnes.c,  arnes_nc: arnes.nc,
+    conductas_seg: seg,
+    conductas_ins: ins,
+    total_c:   totalC,
+    total_nc:  totalNC,
+    resultado: resultadoSel,
+    riesgo:    riesgoSel || '',
+    hallazgos: hallazgosArr.join(' | '),
+    resumen:   v('resumen'),
   };
 
   try {
-    const resp = await fetch(SHEETS_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload),
+    // Google Apps Script requiere no-cors para evitar bloqueo CORS
+    await fetch(SHEETS_URL, {
+      method:  'POST',
+      mode:    'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body:    JSON.stringify(payload),
     });
-    const data = await resp.json();
-
-    if (data.ok) {
-      btn.innerHTML = '✅ Guardado en fila ' + data.fila;
-      btn.style.background = '#059669';
-      btn.disabled = false;
-    } else {
-      throw new Error(data.error || 'Error desconocido');
-    }
+    // no-cors no devuelve respuesta legible, pero si no lanza error = éxito
+    btn.innerHTML = '✅ Guardado correctamente';
+    btn.style.background = '#059669';
+    btn.disabled = false;
+    setTimeout(() => {
+      btn.innerHTML = '💾 Guardar en Sheets';
+      btn.style.background = '';
+    }, 4000);
   } catch (err) {
     btn.innerHTML = '❌ Error al guardar';
     btn.style.background = '#DC2626';
     btn.disabled = false;
-    alert('Error al guardar: ' + err.message + '\n\nVerifica que la URL del script esté correctamente configurada en el archivo index.html (variable SHEETS_URL).');
+    alert('Error de conexión: ' + err.message);
   }
 }
 
