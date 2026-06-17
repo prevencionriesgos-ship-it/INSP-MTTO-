@@ -922,7 +922,15 @@
           <td><select class="ac-cat" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font-main);color:var(--text)"><option value="">—</option><option>EPP</option><option>Señalización</option><option>Fusión FO</option><option>Vehículo</option><option>Herr. manuales</option><option>Escalera</option><option>Arnés</option><option>Conducta</option><option>Otro</option></select></td>
           <td><input type="text" placeholder="Describir hallazgo..." class="ac-h"></td>
           <td><input type="text" placeholder="Acción correctiva..." class="ac-a"></td>
-          <td><input type="text" placeholder="Responsable" class="ac-r"></td>
+          <td><select class="ac-r" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:4px 6px;font-size:12px;font-family:var(--font-main);color:var(--text);background:white">
+            <option value="">— Responsable —</option>
+            <option value="Bodega">Bodega</option>
+            <option value="Coordinación">Coordinación</option>
+            <option value="Prevención de Riesgos">Prevención de Riesgos</option>
+            <option value="Supervisor">Supervisor</option>
+            <option value="Inspector HSE">Inspector HSE</option>
+            <option value="Otro">Otro</option>
+          </select></td>
           <td><input type="date" class="ac-f"></td>
           <td><button onclick="eliminarFila(this)" style="border:none;background:none;color:#DC2626;cursor:pointer;font-size:16px;padding:2px 4px">×</button></td>
         </tr>
@@ -1065,11 +1073,11 @@
       </div>
 
       <!-- ===== FIRMAS ===== -->
-      <div class="firma-row" id="firmas-grid">
+      <div class="firma-row" id="firmas-grid" style="grid-template-columns:1fr 1fr">
 
-        <!-- 1. Supervisor -->
+        <!-- 1. Asesor Prevención de Riesgos -->
         <div class="firma-box">
-          <div class="firma-title">Supervisor a cargo</div>
+          <div class="firma-title">Asesor Prevención de Riesgos</div>
           <div class="firma-name" id="inf-firma-sup" style="font-size:12px;margin:2px 0">—</div>
           <div class="firma-rut" id="inf-firma-sup-rut" style="font-size:11px;color:var(--gris);margin-bottom:6px"></div>
           <div class="firma-tabs">
@@ -1078,7 +1086,7 @@
             <button class="firma-tab" onclick="setFirmaMode('sup','escrita',this)">T Escrita</button>
           </div>
           <div class="firma-canvas-wrap" id="wrap-draw-sup">
-            <canvas id="canvas-sup" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
+            <canvas id="canvas-sup" width="340" height="110" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
             <div id="firma-sup-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
           </div>
           <div class="firma-cursiva-wrap" id="wrap-cursiva-sup">
@@ -1090,83 +1098,11 @@
           <button onclick="limpiarFirma('sup')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
         </div>
 
-        <!-- 2. Responsable Bodega -->
+        <!-- 2. Quien Realiza la Inspección -->
         <div class="firma-box">
-          <div class="firma-title">Responsable Bodega</div>
+          <div class="firma-title">Quien Realiza la Inspección</div>
           <div class="field" style="margin:4px 0 6px">
-            <input type="text" id="bodega-nombre" placeholder="Nombre responsable" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
-          </div>
-          <div class="firma-tabs">
-            <button class="firma-tab active" onclick="setFirmaMode('bodega','draw',this)">✍ Dibujar</button>
-            <button class="firma-tab" onclick="setFirmaMode('bodega','cursiva',this)">𝒜 Cursiva</button>
-            <button class="firma-tab" onclick="setFirmaMode('bodega','escrita',this)">T Escrita</button>
-          </div>
-          <div class="firma-canvas-wrap" id="wrap-draw-bodega">
-            <canvas id="canvas-bodega" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
-            <div id="firma-bodega-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
-          </div>
-          <div class="firma-cursiva-wrap" id="wrap-cursiva-bodega">
-            <div class="firma-cursiva-text" id="cursiva-text-bodega"></div>
-          </div>
-          <div class="firma-escrita-wrap" id="wrap-escrita-bodega">
-            <input type="text" id="escrita-input-bodega" placeholder="Nombre completo" oninput="updateEscrita('bodega')" style="width:100%;border:none;outline:none;font-size:15px;font-family:'Dancing Script',cursive;text-align:center;background:transparent">
-          </div>
-          <button onclick="limpiarFirma('bodega')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
-        </div>
-
-        <!-- 3. APR -->
-        <div class="firma-box">
-          <div class="firma-title">APR</div>
-          <div class="field" style="margin:4px 0 6px">
-            <input type="text" id="apr-nombre" placeholder="Nombre APR" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
-          </div>
-          <div class="firma-tabs">
-            <button class="firma-tab active" onclick="setFirmaMode('apr','draw',this)">✍ Dibujar</button>
-            <button class="firma-tab" onclick="setFirmaMode('apr','cursiva',this)">𝒜 Cursiva</button>
-            <button class="firma-tab" onclick="setFirmaMode('apr','escrita',this)">T Escrita</button>
-          </div>
-          <div class="firma-canvas-wrap" id="wrap-draw-apr">
-            <canvas id="canvas-apr" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
-            <div id="firma-apr-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
-          </div>
-          <div class="firma-cursiva-wrap" id="wrap-cursiva-apr">
-            <div class="firma-cursiva-text" id="cursiva-text-apr"></div>
-          </div>
-          <div class="firma-escrita-wrap" id="wrap-escrita-apr">
-            <input type="text" id="escrita-input-apr" placeholder="Nombre completo" oninput="updateEscrita('apr')" style="width:100%;border:none;outline:none;font-size:15px;font-family:'Dancing Script',cursive;text-align:center;background:transparent">
-          </div>
-          <button onclick="limpiarFirma('apr')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
-        </div>
-
-        <!-- 4. Coordinador -->
-        <div class="firma-box">
-          <div class="firma-title">Coordinador</div>
-          <div class="field" style="margin:4px 0 6px">
-            <input type="text" id="coord-nombre" placeholder="Nombre coordinador" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
-          </div>
-          <div class="firma-tabs">
-            <button class="firma-tab active" onclick="setFirmaMode('coord','draw',this)">✍ Dibujar</button>
-            <button class="firma-tab" onclick="setFirmaMode('coord','cursiva',this)">𝒜 Cursiva</button>
-            <button class="firma-tab" onclick="setFirmaMode('coord','escrita',this)">T Escrita</button>
-          </div>
-          <div class="firma-canvas-wrap" id="wrap-draw-coord">
-            <canvas id="canvas-coord" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
-            <div id="firma-coord-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
-          </div>
-          <div class="firma-cursiva-wrap" id="wrap-cursiva-coord">
-            <div class="firma-cursiva-text" id="cursiva-text-coord"></div>
-          </div>
-          <div class="firma-escrita-wrap" id="wrap-escrita-coord">
-            <input type="text" id="escrita-input-coord" placeholder="Nombre completo" oninput="updateEscrita('coord')" style="width:100%;border:none;outline:none;font-size:15px;font-family:'Dancing Script',cursive;text-align:center;background:transparent">
-          </div>
-          <button onclick="limpiarFirma('coord')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
-        </div>
-
-        <!-- 5. Inspector HSE -->
-        <div class="firma-box">
-          <div class="firma-title">Inspector / Verificador HSE</div>
-          <div class="field" style="margin:4px 0 6px">
-            <input type="text" id="inspector-nombre" placeholder="Nombre inspector HSE" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
+            <input type="text" id="inspector-nombre" placeholder="Nombre completo" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
           </div>
           <div class="firma-tabs">
             <button class="firma-tab active" onclick="setFirmaMode('insp','draw',this)">✍ Dibujar</button>
@@ -1174,7 +1110,7 @@
             <button class="firma-tab" onclick="setFirmaMode('insp','escrita',this)">T Escrita</button>
           </div>
           <div class="firma-canvas-wrap" id="wrap-draw-insp">
-            <canvas id="canvas-insp" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
+            <canvas id="canvas-insp" width="340" height="110" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
             <div id="firma-insp-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
           </div>
           <div class="firma-cursiva-wrap" id="wrap-cursiva-insp">
@@ -1387,7 +1323,6 @@ const ARNES_ITEMS = [
   "Absorbedor de impacto sin activación previa (indicador visual)",
   "Mosquetons / ganchos de seguro operativos, sin corrosión",
   "Longitud del cabo de vida adecuada para la tarea",
-  "Certificado de inspección o registro de uso disponible",
   "Arnés almacenado correctamente (sin exposición a químicos, UV, calor)",
 ];
 const CONDUCTA_ITEMS = [
@@ -1960,7 +1895,15 @@ function crearFilaAccion(cat, hallazgo, accion) {
     </select></td>
     <td><input type="text" class="ac-h" value="${hallazgo.replace(/"/g,'&quot;')}" placeholder="Describir hallazgo..."></td>
     <td><input type="text" class="ac-a" value="${accion.replace(/"/g,'&quot;')}" placeholder="Acción correctiva..."></td>
-    <td><input type="text" class="ac-r" placeholder="Responsable"></td>
+    <td><select class="ac-r" style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font-main);color:var(--text);cursor:pointer">
+      <option value="">— Responsable —</option>
+      <option value="Bodega">Bodega</option>
+      <option value="Coordinación">Coordinación</option>
+      <option value="Prevención de Riesgos">Prevención de Riesgos</option>
+      <option value="Supervisor">Supervisor</option>
+      <option value="Inspector HSE">Inspector HSE</option>
+      <option value="Otro">Otro</option>
+    </select></td>
     <td><input type="date" class="ac-f"></td>
     <td><button onclick="eliminarFila(this)" style="border:none;background:none;color:#DC2626;cursor:pointer;font-size:16px;padding:2px 4px">×</button></td>
   `;
@@ -2030,7 +1973,7 @@ const EMPRESA_CORREO = 'prevencion.riesgos@pytsystems.cl';
 const EMPRESA_NOMBRE = 'PYT Systems SpA — HSE';
 
 // ====================== FIRMAS DIGITALES ======================
-const FIRMA_IDS  = ['sup','bodega','apr','coord','insp'];
+const FIRMA_IDS  = ['sup','insp'];
 const firmaMode  = {};
 const firmaState = {};
 FIRMA_IDS.forEach(id => {
