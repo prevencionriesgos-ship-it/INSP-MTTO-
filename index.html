@@ -1270,6 +1270,7 @@ const HERR_ITEMS = [
   "Bobina 500m",
   "Power Meter",
   "Detector de Tráfico",
+  "Detector de Voltaje",
   "Emisor de Luz",
   "Microscopio para Fibra Óptica",
   "Maleta Herramientas FO (Pelador FO, Cortador FO, Nuez para sangrías, Cortador de cable, Cortador de Minitubos)",
@@ -1635,8 +1636,8 @@ function generarInforme() {
   }
 
   document.getElementById('inf-resumen').textContent = v('resumen')||'(Sin resumen)';
-  document.getElementById('inf-firma-sup').textContent = supSel ? supSel.nombre : '—';
-  document.getElementById('inf-firma-sup-rut').textContent = supSel ? 'RUT: '+supSel.rut : '';
+  document.getElementById('inf-firma-sup').textContent = 'Scarlett Madariaga';
+  document.getElementById('inf-firma-sup-rut').textContent = 'Asesor en Prevención de Riesgos';
   document.getElementById('inf-footer-text').textContent = `PYT Systems SpA · ${fechaFmt}`;
 
   document.getElementById('form-section').style.display = 'none';
@@ -1994,7 +1995,7 @@ function setFirmaMode(id, mode, btn) {
 
 function autoGenerarCursiva(id) {
   let nombre = '';
-  if      (id==='sup')    nombre = supSel ? supSel.nombre.split(' ').slice(0,2).join(' ') : '';
+  if      (id==='sup')    nombre = 'Scarlett Madariaga';
   else if (id==='bodega') nombre = document.getElementById('bodega-nombre')?.value || '';
   else if (id==='apr')    nombre = document.getElementById('apr-nombre')?.value    || '';
   else if (id==='coord')  nombre = document.getElementById('coord-nombre')?.value  || '';
@@ -2074,7 +2075,7 @@ function getFirmaDataURL(id) {
 function initFirmas() {
   setTimeout(() => {
     FIRMA_IDS.forEach(id => initFirma(id));
-    if (supSel) autoGenerarCursiva('sup');
+    autoGenerarCursiva('sup');
   }, 150);
 }
 
