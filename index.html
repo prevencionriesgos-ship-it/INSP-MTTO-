@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Orden de Trabajo — PYT Systems SpA</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=Dancing+Script:wght@700&family=Pacifico&family=Sacramento&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
@@ -354,8 +354,15 @@
   .sum-red { color: var(--rojo); }
   .sum-amber { color: var(--amarillo); }
 
-  .firma-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem; }
-  .firma-box { border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; background: var(--gris-pale); }
+  .firma-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 2rem; }
+  .firma-box { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; background: var(--gris-pale); }
+  .firma-tabs { display:flex; gap:4px; margin-bottom:8px; }
+  .firma-tab { flex:1; padding:5px 4px; border:1px solid var(--border); border-radius:5px; background:white; font-size:11px; font-weight:600; cursor:pointer; font-family:var(--font-main); color:var(--gris); text-align:center; transition:all 0.15s; }
+  .firma-tab.active { background:var(--azul); color:white; border-color:var(--azul); }
+  .firma-canvas-wrap { position:relative; margin-bottom:6px; }
+  .firma-cursiva-wrap { display:none; height:110px; border:1.5px solid var(--border); border-radius:6px; background:white; align-items:center; justify-content:center; }
+  .firma-escrita-wrap { display:none; height:110px; border:1.5px solid var(--border); border-radius:6px; background:white; padding:8px; align-items:center; justify-content:center; }
+  .firma-cursiva-text { font-family:'Dancing Script',cursive; font-size:32px; color:#0A2540; text-align:center; padding:8px; word-break:break-word; }
   .firma-title { font-size: 12px; font-weight: 600; color: var(--text-soft); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; }
   .firma-name { font-size: 15px; font-weight: 600; margin-top: 6px; }
   .firma-rut { font-size: 13px; color: var(--gris); margin-top: 2px; font-family: var(--font-mono); }
@@ -1057,43 +1064,128 @@
         <div style="background:var(--gris-pale);border-radius:8px;padding:1rem;font-size:14px;line-height:1.7" id="inf-resumen"></div>
       </div>
 
-      <div class="firma-row">
-        <!-- Firma Supervisor -->
+      <!-- ===== FIRMAS ===== -->
+      <div class="firma-row" id="firmas-grid">
+
+        <!-- 1. Supervisor -->
         <div class="firma-box">
           <div class="firma-title">Supervisor a cargo</div>
-          <div class="firma-name" id="inf-firma-sup">—</div>
-          <div class="firma-rut" id="inf-firma-sup-rut"></div>
-          <div style="margin-top:10px;position:relative">
-            <canvas id="canvas-sup" width="340" height="110"
-              style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair">
-            </canvas>
-            <div id="firma-sup-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:var(--gris);font-size:13px;font-family:var(--font-mono)">
-              ✍ Firmar aquí
-            </div>
+          <div class="firma-name" id="inf-firma-sup" style="font-size:12px;margin:2px 0">—</div>
+          <div class="firma-rut" id="inf-firma-sup-rut" style="font-size:11px;color:var(--gris);margin-bottom:6px"></div>
+          <div class="firma-tabs">
+            <button class="firma-tab active" onclick="setFirmaMode('sup','draw',this)">✍ Dibujar</button>
+            <button class="firma-tab" onclick="setFirmaMode('sup','cursiva',this)">𝒜 Cursiva</button>
+            <button class="firma-tab" onclick="setFirmaMode('sup','escrita',this)">T Escrita</button>
           </div>
-          <div style="display:flex;gap:6px;margin-top:6px">
-            <button onclick="limpiarFirma('sup')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:5px;background:white;font-size:12px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
+          <div class="firma-canvas-wrap" id="wrap-draw-sup">
+            <canvas id="canvas-sup" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
+            <div id="firma-sup-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
           </div>
+          <div class="firma-cursiva-wrap" id="wrap-cursiva-sup">
+            <div class="firma-cursiva-text" id="cursiva-text-sup"></div>
+          </div>
+          <div class="firma-escrita-wrap" id="wrap-escrita-sup">
+            <input type="text" id="escrita-input-sup" placeholder="Nombre completo" oninput="updateEscrita('sup')" style="width:100%;border:none;outline:none;font-size:15px;font-family:'Dancing Script',cursive;text-align:center;background:transparent">
+          </div>
+          <button onclick="limpiarFirma('sup')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
         </div>
-        <!-- Firma Inspector -->
+
+        <!-- 2. Responsable Bodega -->
+        <div class="firma-box">
+          <div class="firma-title">Responsable Bodega</div>
+          <div class="field" style="margin:4px 0 6px">
+            <input type="text" id="bodega-nombre" placeholder="Nombre responsable" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
+          </div>
+          <div class="firma-tabs">
+            <button class="firma-tab active" onclick="setFirmaMode('bodega','draw',this)">✍ Dibujar</button>
+            <button class="firma-tab" onclick="setFirmaMode('bodega','cursiva',this)">𝒜 Cursiva</button>
+            <button class="firma-tab" onclick="setFirmaMode('bodega','escrita',this)">T Escrita</button>
+          </div>
+          <div class="firma-canvas-wrap" id="wrap-draw-bodega">
+            <canvas id="canvas-bodega" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
+            <div id="firma-bodega-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
+          </div>
+          <div class="firma-cursiva-wrap" id="wrap-cursiva-bodega">
+            <div class="firma-cursiva-text" id="cursiva-text-bodega"></div>
+          </div>
+          <div class="firma-escrita-wrap" id="wrap-escrita-bodega">
+            <input type="text" id="escrita-input-bodega" placeholder="Nombre completo" oninput="updateEscrita('bodega')" style="width:100%;border:none;outline:none;font-size:15px;font-family:'Dancing Script',cursive;text-align:center;background:transparent">
+          </div>
+          <button onclick="limpiarFirma('bodega')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
+        </div>
+
+        <!-- 3. APR -->
+        <div class="firma-box">
+          <div class="firma-title">APR</div>
+          <div class="field" style="margin:4px 0 6px">
+            <input type="text" id="apr-nombre" placeholder="Nombre APR" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
+          </div>
+          <div class="firma-tabs">
+            <button class="firma-tab active" onclick="setFirmaMode('apr','draw',this)">✍ Dibujar</button>
+            <button class="firma-tab" onclick="setFirmaMode('apr','cursiva',this)">𝒜 Cursiva</button>
+            <button class="firma-tab" onclick="setFirmaMode('apr','escrita',this)">T Escrita</button>
+          </div>
+          <div class="firma-canvas-wrap" id="wrap-draw-apr">
+            <canvas id="canvas-apr" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
+            <div id="firma-apr-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
+          </div>
+          <div class="firma-cursiva-wrap" id="wrap-cursiva-apr">
+            <div class="firma-cursiva-text" id="cursiva-text-apr"></div>
+          </div>
+          <div class="firma-escrita-wrap" id="wrap-escrita-apr">
+            <input type="text" id="escrita-input-apr" placeholder="Nombre completo" oninput="updateEscrita('apr')" style="width:100%;border:none;outline:none;font-size:15px;font-family:'Dancing Script',cursive;text-align:center;background:transparent">
+          </div>
+          <button onclick="limpiarFirma('apr')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
+        </div>
+
+        <!-- 4. Coordinador -->
+        <div class="firma-box">
+          <div class="firma-title">Coordinador</div>
+          <div class="field" style="margin:4px 0 6px">
+            <input type="text" id="coord-nombre" placeholder="Nombre coordinador" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
+          </div>
+          <div class="firma-tabs">
+            <button class="firma-tab active" onclick="setFirmaMode('coord','draw',this)">✍ Dibujar</button>
+            <button class="firma-tab" onclick="setFirmaMode('coord','cursiva',this)">𝒜 Cursiva</button>
+            <button class="firma-tab" onclick="setFirmaMode('coord','escrita',this)">T Escrita</button>
+          </div>
+          <div class="firma-canvas-wrap" id="wrap-draw-coord">
+            <canvas id="canvas-coord" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
+            <div id="firma-coord-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
+          </div>
+          <div class="firma-cursiva-wrap" id="wrap-cursiva-coord">
+            <div class="firma-cursiva-text" id="cursiva-text-coord"></div>
+          </div>
+          <div class="firma-escrita-wrap" id="wrap-escrita-coord">
+            <input type="text" id="escrita-input-coord" placeholder="Nombre completo" oninput="updateEscrita('coord')" style="width:100%;border:none;outline:none;font-size:15px;font-family:'Dancing Script',cursive;text-align:center;background:transparent">
+          </div>
+          <button onclick="limpiarFirma('coord')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
+        </div>
+
+        <!-- 5. Inspector HSE -->
         <div class="firma-box">
           <div class="firma-title">Inspector / Verificador HSE</div>
-          <div class="field" style="margin-top:6px;margin-bottom:8px">
-            <input type="text" id="inspector-nombre" placeholder="Nombre completo del inspector"
-              style="border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;font-family:var(--font-main);width:100%;outline:none">
+          <div class="field" style="margin:4px 0 6px">
+            <input type="text" id="inspector-nombre" placeholder="Nombre inspector HSE" style="border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:12px;font-family:var(--font-main);width:100%;outline:none">
           </div>
-          <div style="position:relative">
-            <canvas id="canvas-insp" width="340" height="110"
-              style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair">
-            </canvas>
-            <div id="firma-insp-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:var(--gris);font-size:13px;font-family:var(--font-mono)">
-              ✍ Firmar aquí
-            </div>
+          <div class="firma-tabs">
+            <button class="firma-tab active" onclick="setFirmaMode('insp','draw',this)">✍ Dibujar</button>
+            <button class="firma-tab" onclick="setFirmaMode('insp','cursiva',this)">𝒜 Cursiva</button>
+            <button class="firma-tab" onclick="setFirmaMode('insp','escrita',this)">T Escrita</button>
           </div>
-          <div style="display:flex;gap:6px;margin-top:6px">
-            <button onclick="limpiarFirma('insp')" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:5px;background:white;font-size:12px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
+          <div class="firma-canvas-wrap" id="wrap-draw-insp">
+            <canvas id="canvas-insp" width="340" height="100" style="border:1.5px solid var(--border);border-radius:6px;background:white;touch-action:none;display:block;width:100%;cursor:crosshair"></canvas>
+            <div id="firma-insp-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#ccc;font-size:12px">✍ Firmar aquí</div>
           </div>
+          <div class="firma-cursiva-wrap" id="wrap-cursiva-insp">
+            <div class="firma-cursiva-text" id="cursiva-text-insp"></div>
+          </div>
+          <div class="firma-escrita-wrap" id="wrap-escrita-insp">
+            <input type="text" id="escrita-input-insp" placeholder="Nombre completo" oninput="updateEscrita('insp')" style="width:100%;border:none;outline:none;font-size:15px;font-family:'Dancing Script',cursive;text-align:center;background:transparent">
+          </div>
+          <button onclick="limpiarFirma('insp')" style="width:100%;margin-top:5px;padding:4px;border:1px solid var(--border);border-radius:5px;background:white;font-size:11px;cursor:pointer;font-family:var(--font-main);color:var(--gris)">🗑 Limpiar</button>
         </div>
+
       </div>
     </div>
 
@@ -1203,7 +1295,16 @@ function actualizarComunas() {
 }
 
 // Inicializar comunas de la Región Metropolitana al cargar
-document.addEventListener('DOMContentLoaded', () => actualizarComunas());
+document.addEventListener('DOMContentLoaded', () => {
+  actualizarComunas();
+  // Precargar WhatsApp y correo de la empresa
+  const wspEl = document.getElementById('wsp-numero');
+  if (wspEl && !wspEl.value) wspEl.value = EMPRESA_WSP;
+  const correoEl = document.getElementById('correo-destino');
+  if (correoEl && !correoEl.value) correoEl.value = EMPRESA_CORREO;
+  const remitenteEl = document.getElementById('correo-remitente');
+  if (remitenteEl && !remitenteEl.value) remitenteEl.value = EMPRESA_NOMBRE;
+});
 const EPP_ITEMS = [
   "Calzado de Seguridad",
   "Casco con Barbiquejo",
@@ -1923,72 +2024,142 @@ function limpiarPlan() {
   document.getElementById('plan-auto-banner').style.display = 'none';
 }
 
-// ====================== FIRMA DIGITAL (CANVAS) ======================
-const firmaState = {
-  sup:  { drawing: false, hasData: false },
-  insp: { drawing: false, hasData: false }
-};
+// ====================== CONFIG EMPRESA ======================
+const EMPRESA_WSP    = '56949805626';
+const EMPRESA_CORREO = 'prevencion.riesgos@pytsystems.cl';
+const EMPRESA_NOMBRE = 'PYT Systems SpA — HSE';
+
+// ====================== FIRMAS DIGITALES ======================
+const FIRMA_IDS  = ['sup','bodega','apr','coord','insp'];
+const firmaMode  = {};
+const firmaState = {};
+FIRMA_IDS.forEach(id => {
+  firmaMode[id]  = 'draw';
+  firmaState[id] = { drawing:false, hasData:false };
+});
+
+function setFirmaMode(id, mode, btn) {
+  firmaMode[id] = mode;
+  const box = btn.closest('.firma-box');
+  box.querySelectorAll('.firma-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  box.querySelector('#wrap-draw-'+id).style.display    = mode==='draw'    ? 'block' : 'none';
+  box.querySelector('#wrap-cursiva-'+id).style.display = mode==='cursiva' ? 'flex'  : 'none';
+  box.querySelector('#wrap-escrita-'+id).style.display = mode==='escrita' ? 'flex'  : 'none';
+  if (mode === 'cursiva') autoGenerarCursiva(id);
+}
+
+function autoGenerarCursiva(id) {
+  let nombre = '';
+  if      (id==='sup')    nombre = supSel ? supSel.nombre.split(' ').slice(0,2).join(' ') : '';
+  else if (id==='bodega') nombre = document.getElementById('bodega-nombre')?.value || '';
+  else if (id==='apr')    nombre = document.getElementById('apr-nombre')?.value    || '';
+  else if (id==='coord')  nombre = document.getElementById('coord-nombre')?.value  || '';
+  else if (id==='insp')   nombre = document.getElementById('inspector-nombre')?.value || '';
+  const el = document.getElementById('cursiva-text-'+id);
+  if (el) el.textContent = nombre || '(ingresa el nombre arriba)';
+}
 
 function initFirma(id) {
-  const canvas = document.getElementById('canvas-' + id);
+  const canvas = document.getElementById('canvas-'+id);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  ctx.strokeStyle = '#0A2540';
-  ctx.lineWidth   = 2.2;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
-
+  ctx.strokeStyle = '#0A2540'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   function getPos(e) {
     const r = canvas.getBoundingClientRect();
-    const scaleX = canvas.width  / r.width;
-    const scaleY = canvas.height / r.height;
+    const sx = canvas.width/r.width, sy = canvas.height/r.height;
     const src = e.touches ? e.touches[0] : e;
-    return { x: (src.clientX - r.left) * scaleX, y: (src.clientY - r.top) * scaleY };
+    return { x:(src.clientX-r.left)*sx, y:(src.clientY-r.top)*sy };
   }
-
   function start(e) {
-    e.preventDefault();
-    firmaState[id].drawing = true;
-    const p = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    document.getElementById('firma-' + id + '-placeholder').style.display = 'none';
+    e.preventDefault(); firmaState[id].drawing = true;
+    const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y);
+    const ph = document.getElementById('firma-'+id+'-placeholder');
+    if (ph) ph.style.display='none';
   }
   function move(e) {
-    e.preventDefault();
-    if (!firmaState[id].drawing) return;
-    const p = getPos(e);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
+    e.preventDefault(); if (!firmaState[id].drawing) return;
+    const p = getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke();
     firmaState[id].hasData = true;
   }
   function stop(e) { e.preventDefault(); firmaState[id].drawing = false; }
-
-  canvas.addEventListener('mousedown',  start, { passive: false });
-  canvas.addEventListener('mousemove',  move,  { passive: false });
-  canvas.addEventListener('mouseup',    stop,  { passive: false });
-  canvas.addEventListener('mouseleave', stop,  { passive: false });
-  canvas.addEventListener('touchstart', start, { passive: false });
-  canvas.addEventListener('touchmove',  move,  { passive: false });
-  canvas.addEventListener('touchend',   stop,  { passive: false });
+  canvas.addEventListener('mousedown',  start, {passive:false});
+  canvas.addEventListener('mousemove',  move,  {passive:false});
+  canvas.addEventListener('mouseup',    stop,  {passive:false});
+  canvas.addEventListener('mouseleave', stop,  {passive:false});
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove',  move,  {passive:false});
+  canvas.addEventListener('touchend',   stop,  {passive:false});
 }
 
 function limpiarFirma(id) {
-  const canvas = document.getElementById('canvas-' + id);
-  if (!canvas) return;
-  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  const canvas = document.getElementById('canvas-'+id);
+  if (canvas) canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
   firmaState[id].hasData = false;
-  document.getElementById('firma-' + id + '-placeholder').style.display = 'flex';
+  const ph = document.getElementById('firma-'+id+'-placeholder');
+  if (ph) ph.style.display='flex';
+  const ct = document.getElementById('cursiva-text-'+id);
+  if (ct) ct.textContent='';
+  const ei = document.getElementById('escrita-input-'+id);
+  if (ei) ei.value='';
 }
 
 function getFirmaDataURL(id) {
-  const canvas = document.getElementById('canvas-' + id);
-  return (canvas && firmaState[id].hasData) ? canvas.toDataURL('image/png') : null;
+  const mode = firmaMode[id] || 'draw';
+  if (mode === 'draw') {
+    const canvas = document.getElementById('canvas-'+id);
+    return (canvas && firmaState[id].hasData) ? canvas.toDataURL('image/png') : null;
+  }
+  const c = document.createElement('canvas'); c.width=340; c.height=100;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle='white'; ctx.fillRect(0,0,340,100);
+  ctx.fillStyle='#0A2540'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  if (mode === 'cursiva') {
+    const el = document.getElementById('cursiva-text-'+id);
+    const txt = el ? el.textContent.trim() : '';
+    if (!txt || txt==='(ingresa el nombre arriba)') return null;
+    ctx.font='36px "Dancing Script",cursive'; ctx.fillText(txt,170,50);
+  } else {
+    const inp = document.getElementById('escrita-input-'+id);
+    const txt = inp ? inp.value.trim() : '';
+    if (!txt) return null;
+    ctx.font='32px "Dancing Script",cursive'; ctx.fillText(txt,170,50);
+  }
+  return c.toDataURL('image/png');
 }
 
-// Inicializar ambos pads al generarse el informe
 function initFirmas() {
-  setTimeout(() => { initFirma('sup'); initFirma('insp'); }, 100);
+  setTimeout(() => {
+    FIRMA_IDS.forEach(id => initFirma(id));
+    if (supSel) autoGenerarCursiva('sup');
+  }, 150);
+}
+
+function embedFirmasEnPDF() {
+  FIRMA_IDS.forEach(id => {
+    const dataURL = getFirmaDataURL(id);
+    const wrap    = document.getElementById('wrap-draw-'+id);
+    if (!dataURL || !wrap) return;
+    ['wrap-draw-','wrap-cursiva-','wrap-escrita-'].forEach(p => {
+      const el = document.getElementById(p+id); if(el) el.style.display='none';
+    });
+    const img = document.createElement('img'); img.src=dataURL; img.id='firma-embed-'+id;
+    img.style.cssText='display:block;width:100%;height:100px;object-fit:contain;border:1.5px solid #e5e7eb;border-radius:6px;background:white;margin-bottom:4px';
+    wrap.parentNode.insertBefore(img, wrap);
+  });
+}
+
+function removeFirmasEmbed() {
+  FIRMA_IDS.forEach(id => {
+    const img = document.getElementById('firma-embed-'+id); if(img) img.remove();
+    const mode = firmaMode[id]||'draw';
+    const drawW = document.getElementById('wrap-draw-'+id);
+    const cursW = document.getElementById('wrap-cursiva-'+id);
+    const escW  = document.getElementById('wrap-escrita-'+id);
+    if(drawW) drawW.style.display = mode==='draw'    ? 'block' : 'none';
+    if(cursW) cursW.style.display = mode==='cursiva' ? 'flex'  : 'none';
+    if(escW)  escW.style.display  = mode==='escrita' ? 'flex'  : 'none';
+  });
 }
 
 function nuevaOT() {
