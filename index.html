@@ -1233,13 +1233,14 @@ function actualizarComunas() {
 // Inicializar comunas de la Región Metropolitana al cargar
 document.addEventListener('DOMContentLoaded', () => {
   actualizarComunas();
-  // Precargar WhatsApp y correo de la empresa
+  // Precargar WhatsApp y correo de la empresa (destino)
   const wspEl = document.getElementById('wsp-numero');
   if (wspEl && !wspEl.value) wspEl.value = EMPRESA_WSP;
   const correoEl = document.getElementById('correo-destino');
   if (correoEl && !correoEl.value) correoEl.value = EMPRESA_CORREO;
-  const remitenteEl = document.getElementById('correo-remitente');
-  if (remitenteEl && !remitenteEl.value) remitenteEl.value = EMPRESA_NOMBRE;
+  // NOTA: "correo-remitente" ya NO se precarga aquí — debe reflejar
+  // el nombre de quien realiza la inspección, no el de la empresa.
+  // Se sincroniza automáticamente al abrir el modal de correo.
 });
 const EPP_ITEMS = [
   "Calzado de Seguridad",
@@ -1692,44 +1693,29 @@ function descargarPDF() {
   const footer = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
 
-  // Forzar ancho fijo tipo A4 para evitar que html2canvas capture
-  // el viewport completo (que genera páginas en blanco al inicio)
-  const prevWidth   = element.style.width;
-  const prevMaxW    = element.style.maxWidth;
-  const prevMargin  = element.style.margin;
-  element.style.width    = '800px';
-  element.style.maxWidth = '800px';
-  element.style.margin   = '0 auto';
+  // Usar el ancho real y natural del elemento (sin forzar), evitando
+  // que html2canvas capture un viewport distinto al layout actual
+  const actualWidth = element.getBoundingClientRect().width;
 
   const opt = {
     margin:       [10, 10, 10, 10],
     filename:     filename,
     image:        { type: 'jpeg', quality: 0.95 },
-    html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 800, scrollY: 0, scrollX: 0 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: Math.ceil(actualWidth), scrollY: 0, scrollX: 0 },
     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak:    { mode: ['avoid-all', 'css'] }
   };
 
-  // Pequeño delay para asegurar que el navegador termine de aplicar
-  // los estilos antes de que html2canvas capture el contenido
-  setTimeout(() => {
-    html2pdf().set(opt).from(element).save()
-      .then(() => {
-        if (footer) footer.style.display = '';
-        element.style.width    = prevWidth;
-        element.style.maxWidth = prevMaxW;
-        element.style.margin   = prevMargin;
-        removeFirmasEmbed();
-      })
-      .catch(() => {
-        if (footer) footer.style.display = '';
-        element.style.width    = prevWidth;
-        element.style.maxWidth = prevMaxW;
-        element.style.margin   = prevMargin;
-        removeFirmasEmbed();
-        alert('Error al generar el PDF. Intenta con "Imprimir" del navegador.');
-      });
-  }, 100);
+  html2pdf().set(opt).from(element).save()
+    .then(() => {
+      if (footer) footer.style.display = '';
+      removeFirmasEmbed();
+    })
+    .catch(() => {
+      if (footer) footer.style.display = '';
+      removeFirmasEmbed();
+      alert('Error al generar el PDF. Intenta con "Imprimir" del navegador.');
+    });
 }
 
 // Convierte los canvas de firma en <img> para el PDF
@@ -1758,6 +1744,15 @@ function removeFirmasEmbed() {
 // ====================== MODAL CORREO ======================
 function abrirModalCorreo() {
   document.getElementById('modal-status').textContent = '';
+
+  // Sincronizar el campo "remitente" con el nombre de quien realiza
+  // la inspección (campo de firma "insp"), si aún no se ha escrito nada
+  const remitenteEl  = document.getElementById('correo-remitente');
+  const inspectorEl  = document.getElementById('inspector-nombre');
+  if (remitenteEl && inspectorEl && inspectorEl.value.trim()) {
+    remitenteEl.value = inspectorEl.value.trim();
+  }
+
   document.getElementById('modal-correo').classList.add('open');
   document.getElementById('correo-destino').focus();
 }
@@ -1795,13 +1790,8 @@ function enviarCorreo() {
   // Incrustar firmas para el PDF
   embedFirmasEnPDF();
 
-  // Forzar ancho fijo para evitar páginas en blanco al capturar
-  const prevWidth   = element.style.width;
-  const prevMaxW    = element.style.maxWidth;
-  const prevMargin  = element.style.margin;
-  element.style.width    = '800px';
-  element.style.maxWidth = '800px';
-  element.style.margin   = '0 auto';
+  // Usar el ancho real y natural del elemento (sin forzar resize)
+  const actualWidth = element.getBoundingClientRect().width;
 
   const supervisor = supSel ? supSel.nombre.replace(/ /g,'_') : 'Inspector';
   const fecha      = v('fecha') || new Date().toISOString().split('T')[0];
@@ -1811,25 +1801,15 @@ function enviarCorreo() {
     margin:      [10, 10, 10, 10],
     filename:    filename,
     image:       { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 800, scrollY: 0, scrollX: 0 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: Math.ceil(actualWidth), scrollY: 0, scrollX: 0 },
     jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak:   { mode: ['avoid-all', 'css'] }
   };
 
-  const restoreWidth = () => {
-    element.style.width    = prevWidth;
-    element.style.maxWidth = prevMaxW;
-    element.style.margin   = prevMargin;
-  };
-
-  // Generar blob del PDF y convertirlo a base64 (con delay para asegurar reflow)
-  const genPdfPromise = new Promise(resolve => setTimeout(resolve, 100))
-    .then(() => html2pdf().set(opt).from(element).outputPdf('blob'));
-
-  genPdfPromise
+  // Generar blob del PDF y convertirlo a base64
+  html2pdf().set(opt).from(element).outputPdf('blob')
     .then(blob => {
       if (footer) footer.style.display = '';
-      restoreWidth();
       removeFirmasEmbed();
 
       return new Promise((resolve, reject) => {
@@ -1891,7 +1871,6 @@ function enviarCorreo() {
     })
     .catch(err => {
       if (footer) footer.style.display = '';
-      restoreWidth();
       removeFirmasEmbed();
       statusEl.textContent = '❌ Error: ' + err.message;
       statusEl.className = 'modal-status err';
