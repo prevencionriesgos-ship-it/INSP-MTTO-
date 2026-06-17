@@ -1692,25 +1692,44 @@ function descargarPDF() {
   const footer = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
 
+  // Forzar ancho fijo tipo A4 para evitar que html2canvas capture
+  // el viewport completo (que genera páginas en blanco al inicio)
+  const prevWidth   = element.style.width;
+  const prevMaxW    = element.style.maxWidth;
+  const prevMargin  = element.style.margin;
+  element.style.width    = '800px';
+  element.style.maxWidth = '800px';
+  element.style.margin   = '0 auto';
+
   const opt = {
     margin:       [10, 10, 10, 10],
     filename:     filename,
     image:        { type: 'jpeg', quality: 0.95 },
-    html2canvas:  { scale: 2, useCORS: true, logging: false },
+    html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 800, scrollY: 0, scrollX: 0 },
     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak:    { mode: ['avoid-all', 'css'] }
   };
 
-  html2pdf().set(opt).from(element).save()
-    .then(() => {
-      if (footer) footer.style.display = '';
-      removeFirmasEmbed();
-    })
-    .catch(() => {
-      if (footer) footer.style.display = '';
-      removeFirmasEmbed();
-      alert('Error al generar el PDF. Intenta con "Imprimir" del navegador.');
-    });
+  // Pequeño delay para asegurar que el navegador termine de aplicar
+  // los estilos antes de que html2canvas capture el contenido
+  setTimeout(() => {
+    html2pdf().set(opt).from(element).save()
+      .then(() => {
+        if (footer) footer.style.display = '';
+        element.style.width    = prevWidth;
+        element.style.maxWidth = prevMaxW;
+        element.style.margin   = prevMargin;
+        removeFirmasEmbed();
+      })
+      .catch(() => {
+        if (footer) footer.style.display = '';
+        element.style.width    = prevWidth;
+        element.style.maxWidth = prevMaxW;
+        element.style.margin   = prevMargin;
+        removeFirmasEmbed();
+        alert('Error al generar el PDF. Intenta con "Imprimir" del navegador.');
+      });
+  }, 100);
 }
 
 // Convierte los canvas de firma en <img> para el PDF
@@ -1776,6 +1795,14 @@ function enviarCorreo() {
   // Incrustar firmas para el PDF
   embedFirmasEnPDF();
 
+  // Forzar ancho fijo para evitar páginas en blanco al capturar
+  const prevWidth   = element.style.width;
+  const prevMaxW    = element.style.maxWidth;
+  const prevMargin  = element.style.margin;
+  element.style.width    = '800px';
+  element.style.maxWidth = '800px';
+  element.style.margin   = '0 auto';
+
   const supervisor = supSel ? supSel.nombre.replace(/ /g,'_') : 'Inspector';
   const fecha      = v('fecha') || new Date().toISOString().split('T')[0];
   const filename   = `Inspeccion_${supervisor}_${fecha}.pdf`;
@@ -1784,15 +1811,25 @@ function enviarCorreo() {
     margin:      [10, 10, 10, 10],
     filename:    filename,
     image:       { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
+    html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 800, scrollY: 0, scrollX: 0 },
     jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak:   { mode: ['avoid-all', 'css'] }
   };
 
-  // Generar blob del PDF y convertirlo a base64
-  html2pdf().set(opt).from(element).outputPdf('blob')
+  const restoreWidth = () => {
+    element.style.width    = prevWidth;
+    element.style.maxWidth = prevMaxW;
+    element.style.margin   = prevMargin;
+  };
+
+  // Generar blob del PDF y convertirlo a base64 (con delay para asegurar reflow)
+  const genPdfPromise = new Promise(resolve => setTimeout(resolve, 100))
+    .then(() => html2pdf().set(opt).from(element).outputPdf('blob'));
+
+  genPdfPromise
     .then(blob => {
       if (footer) footer.style.display = '';
+      restoreWidth();
       removeFirmasEmbed();
 
       return new Promise((resolve, reject) => {
@@ -1854,6 +1891,7 @@ function enviarCorreo() {
     })
     .catch(err => {
       if (footer) footer.style.display = '';
+      restoreWidth();
       removeFirmasEmbed();
       statusEl.textContent = '❌ Error: ' + err.message;
       statusEl.className = 'modal-status err';
