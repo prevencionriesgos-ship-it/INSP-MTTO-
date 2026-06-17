@@ -1693,15 +1693,14 @@ function descargarPDF() {
   const footer = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
 
-  // Usar el ancho real y natural del elemento (sin forzar), evitando
-  // que html2canvas capture un viewport distinto al layout actual
-  const actualWidth = element.getBoundingClientRect().width;
-
+  // No se fuerza windowWidth: html2canvas captura el elemento en su
+  // contexto natural y real (igual a como se ve en pantalla), evitando
+  // desplazamientos o recortes causados por un viewport distinto.
   const opt = {
     margin:       [10, 10, 10, 10],
     filename:     filename,
     image:        { type: 'jpeg', quality: 0.95 },
-    html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: Math.ceil(actualWidth), scrollY: 0, scrollX: 0 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false },
     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak:    { mode: ['avoid-all', 'css'] }
   };
@@ -1790,18 +1789,16 @@ function enviarCorreo() {
   // Incrustar firmas para el PDF
   embedFirmasEnPDF();
 
-  // Usar el ancho real y natural del elemento (sin forzar resize)
-  const actualWidth = element.getBoundingClientRect().width;
-
   const supervisor = supSel ? supSel.nombre.replace(/ /g,'_') : 'Inspector';
   const fecha      = v('fecha') || new Date().toISOString().split('T')[0];
   const filename   = `Inspeccion_${supervisor}_${fecha}.pdf`;
 
+  // No se fuerza windowWidth: se captura en el contexto real de pantalla
   const opt = {
     margin:      [10, 10, 10, 10],
     filename:    filename,
     image:       { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: Math.ceil(actualWidth), scrollY: 0, scrollX: 0 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak:   { mode: ['avoid-all', 'css'] }
   };
