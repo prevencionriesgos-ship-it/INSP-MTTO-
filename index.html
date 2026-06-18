@@ -1254,7 +1254,8 @@ const EPP_ITEMS = [
   "Guantes Mosqueteros Largos",
   "Guantes Trabajo Fino",
   "Guantes de Cabritilla (Seguridad)",
-  "Arnés Cuerpo Completo 4 Argollas y Dieléctrico",
+  "Arnés Cuerpo Completo 4 Argollas",
+  "Arnés Dieléctrico",
   "Cabo de Vida",
   "Ropa de Trabajo",
 ];
@@ -1693,14 +1694,16 @@ function descargarPDF() {
   const footer = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
 
-  // No se fuerza windowWidth: html2canvas captura el elemento en su
-  // contexto natural y real (igual a como se ve en pantalla), evitando
-  // desplazamientos o recortes causados por un viewport distinto.
+  // Se fuerza un ancho de renderizado tipo escritorio (820px) SOLO para
+  // la captura interna de html2canvas — esto NO modifica el elemento
+  // real en el DOM ni su CSS, por lo que no se desalinea. Esto soluciona
+  // el corte de contenido cuando se genera el PDF desde un celular en
+  // pantalla angosta, sin necesidad de girar el teléfono.
   const opt = {
     margin:       [10, 10, 10, 10],
     filename:     filename,
     image:        { type: 'jpeg', quality: 0.95 },
-    html2canvas:  { scale: 2, useCORS: true, logging: false },
+    html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 820 },
     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak:    { mode: ['avoid-all', 'css'] }
   };
@@ -1744,12 +1747,12 @@ function removeFirmasEmbed() {
 function abrirModalCorreo() {
   document.getElementById('modal-status').textContent = '';
 
-  // Sincronizar el campo "remitente" con el nombre de quien realiza
-  // la inspección (campo de firma "insp"), si aún no se ha escrito nada
-  const remitenteEl  = document.getElementById('correo-remitente');
-  const inspectorEl  = document.getElementById('inspector-nombre');
-  if (remitenteEl && inspectorEl && inspectorEl.value.trim()) {
-    remitenteEl.value = inspectorEl.value.trim();
+  // Sincronizar el campo "remitente" con el nombre del Supervisor
+  // seleccionado en el formulario (quien realiza la inspección),
+  // si aún no se ha escrito nada manualmente en el campo.
+  const remitenteEl = document.getElementById('correo-remitente');
+  if (remitenteEl && supSel && supSel.nombre) {
+    remitenteEl.value = supSel.nombre;
   }
 
   document.getElementById('modal-correo').classList.add('open');
@@ -1798,7 +1801,7 @@ function enviarCorreo() {
     margin:      [10, 10, 10, 10],
     filename:    filename,
     image:       { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
+    html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 820 },
     jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
     pagebreak:   { mode: ['avoid-all', 'css'] }
   };
