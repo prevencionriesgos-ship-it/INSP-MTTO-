@@ -1684,17 +1684,34 @@ const EMAILJS_TEMPLATE_ID = 'template_4fu2mnv';  // Email Templates > tu plantil
 
 // ====================== DESCARGA PDF ======================
 function descargarPDF() {
-  const original = document.getElementById('informe-content');
+  const element = document.getElementById('informe-content');
   const supervisor = supSel ? supSel.nombre.replace(/ /g,'_') : 'Inspector';
   const fecha = v('fecha') || new Date().toISOString().split('T')[0];
   const filename = `Inspeccion_Seguridad_${supervisor}_${fecha}.pdf`;
 
+  // Incrustar firmas como imágenes en el PDF
   embedFirmasEnPDF();
 
-  const footer = original.querySelector('.informe-footer');
+  const footer = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
 
-  generarPdfAislado(original, filename)
+  // Captura DIRECTA del elemento real, sin clonar ni usar iframe ni
+  // forzar windowWidth: html2canvas mide y captura correctamente el
+  // elemento tal como está en su posición real del documento. Cualquier
+  // clonado o reposicionamiento (iframe, wrapper fuera de pantalla,
+  // windowWidth distinto al real) hace que html2canvas calcule mal el
+  // offset horizontal, cortando y desplazando el contenido — esto fue
+  // verificado de forma reproducible antes de aplicar este fix.
+  const opt = {
+    margin:       [10, 10, 10, 10],
+    filename:     filename,
+    image:        { type: 'jpeg', quality: 0.95 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css'] }
+  };
+
+  html2pdf().set(opt).from(element).save()
     .then(() => {
       if (footer) footer.style.display = '';
       removeFirmasEmbed();
@@ -1705,75 +1722,6 @@ function descargarPDF() {
       console.error('Error generando PDF:', err);
       alert('Error al generar el PDF. Intenta con "Imprimir" del navegador.');
     });
-}
-
-// ---------------------------------------------------------------
-// Genera el PDF en un iframe completamente aislado (documento propio,
-// sin heredar CSS global, modales ocultos, ni layout de la página
-// principal). Esto elimina por completo las páginas en blanco y los
-// desplazamientos de contenido, sin importar el tamaño de pantalla
-// del dispositivo (celular, tablet o computador).
-// ---------------------------------------------------------------
-function generarPdfAislado(sourceElement, filename) {
-  return new Promise((resolve, reject) => {
-    const FIXED_WIDTH = 800; // ancho fijo tipo escritorio para el render
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.top = '-99999px';
-    iframe.style.left = '-99999px';
-    iframe.style.width = FIXED_WIDTH + 'px';
-    iframe.style.height = '1200px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const idoc = iframe.contentDocument || iframe.contentWindow.document;
-    idoc.open();
-    idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
-
-    // Copiar todos los <style> y <link rel="stylesheet"> de la página
-    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(node => {
-      idoc.write(node.outerHTML);
-    });
-
-    idoc.write(`</head><body style="margin:0;padding:0;width:${FIXED_WIDTH}px;background:#fff">`);
-    idoc.write('<div id="pdf-clone-root"></div>');
-    idoc.write('</body></html>');
-    idoc.close();
-
-    const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
-
-    // Esperar a que el iframe cargue sus estilos antes de clonar e imprimir
-    const proceed = () => {
-      try {
-        const root = idoc.getElementById('pdf-clone-root');
-        const clone = sourceElement.cloneNode(true);
-        clone.style.width = FIXED_WIDTH + 'px';
-        clone.style.maxWidth = FIXED_WIDTH + 'px';
-        clone.style.margin = '0';
-        root.appendChild(clone);
-
-        const opt = {
-          margin:      [10, 10, 10, 10],
-          filename:    filename,
-          image:       { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: FIXED_WIDTH, windowHeight: idoc.body.scrollHeight || 1200 },
-          jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak:   { mode: ['avoid-all', 'css'] }
-        };
-
-        html2pdf().set(opt).from(clone).save()
-          .then(() => { cleanup(); resolve(); })
-          .catch((err) => { cleanup(); reject(err); });
-      } catch (err) {
-        cleanup();
-        reject(err);
-      }
-    };
-
-    // Pequeño delay para asegurar que los estilos del iframe se apliquen
-    setTimeout(proceed, 250);
-  });
 }
 
 // ====================== MODAL CORREO ======================
@@ -1800,65 +1748,6 @@ function cerrarModalSiOverlay(e) {
   if (e.target === document.getElementById('modal-correo')) cerrarModalCorreo();
 }
 
-// Versión que retorna el PDF como Blob en vez de descargarlo directo
-// (reutilizada para adjuntar al correo)
-function generarPdfAisladoBlob(sourceElement, filename) {
-  return new Promise((resolve, reject) => {
-    const FIXED_WIDTH = 800;
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.top = '-99999px';
-    iframe.style.left = '-99999px';
-    iframe.style.width = FIXED_WIDTH + 'px';
-    iframe.style.height = '1200px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const idoc = iframe.contentDocument || iframe.contentWindow.document;
-    idoc.open();
-    idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
-    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(node => {
-      idoc.write(node.outerHTML);
-    });
-    idoc.write(`</head><body style="margin:0;padding:0;width:${FIXED_WIDTH}px;background:#fff">`);
-    idoc.write('<div id="pdf-clone-root"></div>');
-    idoc.write('</body></html>');
-    idoc.close();
-
-    const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
-
-    const proceed = () => {
-      try {
-        const root = idoc.getElementById('pdf-clone-root');
-        const clone = sourceElement.cloneNode(true);
-        clone.style.width = FIXED_WIDTH + 'px';
-        clone.style.maxWidth = FIXED_WIDTH + 'px';
-        clone.style.margin = '0';
-        root.appendChild(clone);
-
-        const opt = {
-          margin:      [10, 10, 10, 10],
-          filename:    filename,
-          image:       { type: 'jpeg', quality: 0.92 },
-          html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: FIXED_WIDTH, windowHeight: idoc.body.scrollHeight || 1200 },
-          jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak:   { mode: ['avoid-all', 'css'] }
-        };
-
-        html2pdf().set(opt).from(clone).outputPdf('blob')
-          .then((blob) => { cleanup(); resolve(blob); })
-          .catch((err) => { cleanup(); reject(err); });
-      } catch (err) {
-        cleanup();
-        reject(err);
-      }
-    };
-
-    setTimeout(proceed, 250);
-  });
-}
-
 function enviarCorreo() {
   const destino   = document.getElementById('correo-destino').value.trim();
   const remitente = document.getElementById('correo-remitente').value.trim() || 'PYT Systems SpA';
@@ -1876,8 +1765,9 @@ function enviarCorreo() {
   btnEl.textContent = '⏳ Generando PDF...';
   statusEl.textContent = '';
 
-  // 1. Generar el PDF como base64 (usando renderizado aislado para
-  // evitar páginas en blanco y desplazamientos en cualquier dispositivo)
+  // 1. Generar el PDF como base64 — captura DIRECTA del elemento real
+  // (sin clonar, sin iframe, sin forzar windowWidth). Ver nota en
+  // descargarPDF() sobre por qué este es el enfoque correcto.
   const element = document.getElementById('informe-content');
   const footer  = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
@@ -1889,7 +1779,16 @@ function enviarCorreo() {
   const fecha      = v('fecha') || new Date().toISOString().split('T')[0];
   const filename   = `Inspeccion_${supervisor}_${fecha}.pdf`;
 
-  generarPdfAisladoBlob(element, filename)
+  const opt = {
+    margin:      [10, 10, 10, 10],
+    filename:    filename,
+    image:       { type: 'jpeg', quality: 0.92 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:   { mode: ['avoid-all', 'css'] }
+  };
+
+  html2pdf().set(opt).from(element).outputPdf('blob')
     .then(blob => {
       if (footer) footer.style.display = '';
       removeFirmasEmbed();
@@ -1917,7 +1816,11 @@ function enviarCorreo() {
 
       const acRows = document.querySelectorAll('#accion-body tr');
       let hallazgos = [];
-      acRows.forEach(r => { const h=r.querySelector('.ac-h')?.value; if(h) hallazgos.push(h); });
+      acRows.forEach(r => {
+        const h   = r.querySelector('.ac-h')?.value?.trim();
+        const cat = r.querySelector('.ac-cat')?.value?.trim();
+        if (h) hallazgos.push((cat && cat !== '—') ? `${cat}: ${h}` : h);
+      });
 
       const payload = {
         accion:     'enviar_correo',
@@ -2231,7 +2134,11 @@ function enviarWhatsApp() {
 
   const acRows = document.querySelectorAll('#accion-body tr');
   let hallazgos = [];
-  acRows.forEach(r => { const h=r.querySelector('.ac-h')?.value; if(h) hallazgos.push('• '+h); });
+  acRows.forEach(r => {
+    const h   = r.querySelector('.ac-h')?.value?.trim();
+    const cat = r.querySelector('.ac-cat')?.value?.trim();
+    if (h) hallazgos.push('• ' + ((cat && cat !== '—') ? `${cat}: ${h}` : h));
+  });
 
   const resumen = v('resumen');
   const tiposSelBtn = Array.from(document.querySelectorAll('.tipo-btn.sel:not([data-tipo="otro"])')).map(b=>b.dataset.tipo);
@@ -2314,8 +2221,9 @@ async function guardarEnSheets() {
 
   const hallazgosArr = [];
   document.querySelectorAll('#accion-body tr').forEach(r => {
-    const h = r.querySelector('.ac-h')?.value?.trim();
-    if (h) hallazgosArr.push(h);
+    const h   = r.querySelector('.ac-h')?.value?.trim();
+    const cat = r.querySelector('.ac-cat')?.value?.trim();
+    if (h) hallazgosArr.push((cat && cat !== '—') ? `${cat}: ${h}` : h);
   });
 
   const tiposSel = Array.from(document.querySelectorAll('.tipo-btn.sel:not([data-tipo="otro"])')).map(b => b.dataset.tipo);
