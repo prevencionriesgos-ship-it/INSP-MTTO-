@@ -1684,63 +1684,95 @@ const EMAILJS_TEMPLATE_ID = 'template_4fu2mnv';  // Email Templates > tu plantil
 
 // ====================== DESCARGA PDF ======================
 function descargarPDF() {
-  const element = document.getElementById('informe-content');
+  const original = document.getElementById('informe-content');
   const supervisor = supSel ? supSel.nombre.replace(/ /g,'_') : 'Inspector';
   const fecha = v('fecha') || new Date().toISOString().split('T')[0];
   const filename = `Inspeccion_Seguridad_${supervisor}_${fecha}.pdf`;
 
-  // Incrustar firmas como imágenes en el PDF
   embedFirmasEnPDF();
 
-  const footer = element.querySelector('.informe-footer');
+  const footer = original.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
 
-  // Se fuerza un ancho de renderizado tipo escritorio (820px) SOLO para
-  // la captura interna de html2canvas — esto NO modifica el elemento
-  // real en el DOM ni su CSS, por lo que no se desalinea. Esto soluciona
-  // el corte de contenido cuando se genera el PDF desde un celular en
-  // pantalla angosta, sin necesidad de girar el teléfono.
-  const opt = {
-    margin:       [10, 10, 10, 10],
-    filename:     filename,
-    image:        { type: 'jpeg', quality: 0.95 },
-    html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 820 },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak:    { mode: ['avoid-all', 'css'] }
-  };
-
-  html2pdf().set(opt).from(element).save()
+  generarPdfAislado(original, filename)
     .then(() => {
       if (footer) footer.style.display = '';
       removeFirmasEmbed();
     })
-    .catch(() => {
+    .catch((err) => {
       if (footer) footer.style.display = '';
       removeFirmasEmbed();
+      console.error('Error generando PDF:', err);
       alert('Error al generar el PDF. Intenta con "Imprimir" del navegador.');
     });
 }
 
-// Convierte los canvas de firma en <img> para el PDF
-function embedFirmasEnPDF() {
-  ['sup','insp'].forEach(id => {
-    const canvas = document.getElementById('canvas-' + id);
-    if (!canvas || !firmaState[id].hasData) return;
-    const img = document.createElement('img');
-    img.src = canvas.toDataURL('image/png');
-    img.id  = 'firma-embed-' + id;
-    img.style.cssText = 'display:block;width:100%;height:110px;object-fit:contain;border:1.5px solid #e5e7eb;border-radius:6px;background:white';
-    canvas.parentNode.insertBefore(img, canvas);
-    canvas.style.display = 'none';
-  });
-}
+// ---------------------------------------------------------------
+// Genera el PDF en un iframe completamente aislado (documento propio,
+// sin heredar CSS global, modales ocultos, ni layout de la página
+// principal). Esto elimina por completo las páginas en blanco y los
+// desplazamientos de contenido, sin importar el tamaño de pantalla
+// del dispositivo (celular, tablet o computador).
+// ---------------------------------------------------------------
+function generarPdfAislado(sourceElement, filename) {
+  return new Promise((resolve, reject) => {
+    const FIXED_WIDTH = 800; // ancho fijo tipo escritorio para el render
 
-function removeFirmasEmbed() {
-  ['sup','insp'].forEach(id => {
-    const img = document.getElementById('firma-embed-' + id);
-    if (img) img.remove();
-    const canvas = document.getElementById('canvas-' + id);
-    if (canvas) canvas.style.display = 'block';
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-99999px';
+    iframe.style.left = '-99999px';
+    iframe.style.width = FIXED_WIDTH + 'px';
+    iframe.style.height = '1200px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const idoc = iframe.contentDocument || iframe.contentWindow.document;
+    idoc.open();
+    idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
+
+    // Copiar todos los <style> y <link rel="stylesheet"> de la página
+    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(node => {
+      idoc.write(node.outerHTML);
+    });
+
+    idoc.write(`</head><body style="margin:0;padding:0;width:${FIXED_WIDTH}px;background:#fff">`);
+    idoc.write('<div id="pdf-clone-root"></div>');
+    idoc.write('</body></html>');
+    idoc.close();
+
+    const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+
+    // Esperar a que el iframe cargue sus estilos antes de clonar e imprimir
+    const proceed = () => {
+      try {
+        const root = idoc.getElementById('pdf-clone-root');
+        const clone = sourceElement.cloneNode(true);
+        clone.style.width = FIXED_WIDTH + 'px';
+        clone.style.maxWidth = FIXED_WIDTH + 'px';
+        clone.style.margin = '0';
+        root.appendChild(clone);
+
+        const opt = {
+          margin:      [10, 10, 10, 10],
+          filename:    filename,
+          image:       { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: FIXED_WIDTH, windowHeight: idoc.body.scrollHeight || 1200 },
+          jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak:   { mode: ['avoid-all', 'css'] }
+        };
+
+        html2pdf().set(opt).from(clone).save()
+          .then(() => { cleanup(); resolve(); })
+          .catch((err) => { cleanup(); reject(err); });
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+
+    // Pequeño delay para asegurar que los estilos del iframe se apliquen
+    setTimeout(proceed, 250);
   });
 }
 
@@ -1768,6 +1800,65 @@ function cerrarModalSiOverlay(e) {
   if (e.target === document.getElementById('modal-correo')) cerrarModalCorreo();
 }
 
+// Versión que retorna el PDF como Blob en vez de descargarlo directo
+// (reutilizada para adjuntar al correo)
+function generarPdfAisladoBlob(sourceElement, filename) {
+  return new Promise((resolve, reject) => {
+    const FIXED_WIDTH = 800;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-99999px';
+    iframe.style.left = '-99999px';
+    iframe.style.width = FIXED_WIDTH + 'px';
+    iframe.style.height = '1200px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const idoc = iframe.contentDocument || iframe.contentWindow.document;
+    idoc.open();
+    idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8">');
+    document.querySelectorAll('style, link[rel="stylesheet"]').forEach(node => {
+      idoc.write(node.outerHTML);
+    });
+    idoc.write(`</head><body style="margin:0;padding:0;width:${FIXED_WIDTH}px;background:#fff">`);
+    idoc.write('<div id="pdf-clone-root"></div>');
+    idoc.write('</body></html>');
+    idoc.close();
+
+    const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+
+    const proceed = () => {
+      try {
+        const root = idoc.getElementById('pdf-clone-root');
+        const clone = sourceElement.cloneNode(true);
+        clone.style.width = FIXED_WIDTH + 'px';
+        clone.style.maxWidth = FIXED_WIDTH + 'px';
+        clone.style.margin = '0';
+        root.appendChild(clone);
+
+        const opt = {
+          margin:      [10, 10, 10, 10],
+          filename:    filename,
+          image:       { type: 'jpeg', quality: 0.92 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: FIXED_WIDTH, windowHeight: idoc.body.scrollHeight || 1200 },
+          jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak:   { mode: ['avoid-all', 'css'] }
+        };
+
+        html2pdf().set(opt).from(clone).outputPdf('blob')
+          .then((blob) => { cleanup(); resolve(blob); })
+          .catch((err) => { cleanup(); reject(err); });
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+
+    setTimeout(proceed, 250);
+  });
+}
+
 function enviarCorreo() {
   const destino   = document.getElementById('correo-destino').value.trim();
   const remitente = document.getElementById('correo-remitente').value.trim() || 'PYT Systems SpA';
@@ -1785,7 +1876,8 @@ function enviarCorreo() {
   btnEl.textContent = '⏳ Generando PDF...';
   statusEl.textContent = '';
 
-  // 1. Generar el PDF como base64
+  // 1. Generar el PDF como base64 (usando renderizado aislado para
+  // evitar páginas en blanco y desplazamientos en cualquier dispositivo)
   const element = document.getElementById('informe-content');
   const footer  = element.querySelector('.informe-footer');
   if (footer) footer.style.display = 'none';
@@ -1797,18 +1889,7 @@ function enviarCorreo() {
   const fecha      = v('fecha') || new Date().toISOString().split('T')[0];
   const filename   = `Inspeccion_${supervisor}_${fecha}.pdf`;
 
-  // No se fuerza windowWidth: se captura en el contexto real de pantalla
-  const opt = {
-    margin:      [10, 10, 10, 10],
-    filename:    filename,
-    image:       { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 820 },
-    jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak:   { mode: ['avoid-all', 'css'] }
-  };
-
-  // Generar blob del PDF y convertirlo a base64
-  html2pdf().set(opt).from(element).outputPdf('blob')
+  generarPdfAisladoBlob(element, filename)
     .then(blob => {
       if (footer) footer.style.display = '';
       removeFirmasEmbed();
