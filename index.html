@@ -1421,7 +1421,6 @@ function selectSup(card) {
   document.querySelectorAll('.sup-card').forEach(c => c.classList.remove('selected'));
   card.classList.add('selected');
   supSel = { nombre: card.dataset.nombre, rut: card.dataset.rut };
-  document.getElementById('ot-display').textContent = v('ot') ? 'OT ' + v('ot') : 'OT —';
 }
 
 function toggleTipo(btn) {
